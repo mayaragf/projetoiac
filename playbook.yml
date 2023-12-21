@@ -1,0 +1,46 @@
+- hosts: VMIac
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Instalar o Docker e Compose
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - docker.io
+        - docker-compose
+
+    - name: Adicionar o diretório do Docker Compose ao PATH
+      lineinfile:
+        dest: "~/.bashrc"
+        line: 'export PATH=$PATH:/usr/local/bin/docker-compose'
+      become: yes
+
+    - name: Startar Docker
+      systemd:
+        name: docker
+        state: started
+      become: yes
+
+    - name: Adicionar usuário ao grupo docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+      become: yes
+
+    - name: Clonar o projeto Voting APP
+      git:
+        repo: https://github.com/Azure-Samples/azure-voting-app-redis.git
+        dest: /home/mayar/azure-voting-app-redis
+
+    - name: Acessar o diretório azure-voting-app-redis
+      become_user: mayara
+      shell: cd /home/mayar/azure-voting-app-redis
+
+    - name: Executar o comando docker-compose up -d
+      become_user: mayara
+      shell: docker-compose up -d
+      args:
+        chdir: /home/mayar/azure-voting-app-redis
